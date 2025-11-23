@@ -32,15 +32,17 @@ class SubjectCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             color: isDark ? const Color(0xFF22304A) : const Color(0xFFDDE8FF),
             boxShadow: [
-              BoxShadow(
-                color: isHovered
-                    ? Colors.blue.withOpacity(0.35)
-                    : Colors.black.withOpacity(0.08),
-                blurRadius: isHovered ? 20 : 8,
-                spreadRadius: isHovered ? 3 : 1,
-                offset: Offset(0, isHovered ? 8 : 3),
-              ),
-            ],
+  if (Theme.of(context).brightness == Brightness.light && isHovered)
+    BoxShadow(
+      color: Colors.blue.withOpacity(0.35),
+      blurRadius: 22,
+      spreadRadius: 4,
+      offset: const Offset(0, 8),
+    )
+],
+
+
+            
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
