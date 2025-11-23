@@ -1,352 +1,343 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/course_model.dart';
+import '../widgets/subject_card.dart';
 import 'enroll.dart';
 import 'about.dart';
 import 'contact.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final VoidCallback toggleTheme;
   const HomePage({super.key, required this.toggleTheme});
 
-  final List<Map<String, String>> subjects = const [
-    {
-      "name": "ENGLISH",
-      "img": "assets/img/eng.png",
-      "short": "Improve vocabulary, grammar\nand fluent communication.",
-      "long":
-          "Our English classes focus on building strong grammar, vocabulary, reading and writing skills. Students learn to express themselves clearly, write better answers, and gain confidence in speaking."
-    },
-    {
-      "name": "MATHS",
-      "img": "assets/img/maths.png",
-      "short": "Master concepts, logic\nand problem solving.",
-      "long":
-          "Maths is taught step-by-step from basics to advanced topics. We focus on concepts, formulas, problem solving techniques and exam oriented practice so students stop fearing numbers."
-    },
-    {
-      "name": "SCIENCE",
-      "img": "assets/img/microscope.png",
-      "short": "Understand experiments,\nreasoning and real-world science.",
-      "long":
-          "Science classes explain every chapter with real-life examples and simple experiments. We focus on understanding concepts in Physics, Chemistry and Biology instead of rote learning."
-    },
-    {
-      "name": "COMPUTER",
-      "img": "assets/img/online-test.png",
-      "short": "Learn basics, typing &\ndigital knowledge.",
-      "long":
-          "Computer classes cover basic operations, typing skills, office tools and safe internet usage. Students become comfortable with using computers for studies and projects."
-    },
-    {
-      "name": "SOCIAL STUDIES",
-      "img": "assets/img/social-science.png",
-      "short": "Know history, civics,\ngeography and culture.",
-      "long":
-          "Social Studies is taught through stories, maps and diagrams. We help students remember important dates, civics concepts, and geography topics with clear explanations."
-    },
-    {
-      "name": "HINDI",
-      "img": "assets/img/vowel.png",
-      "short": "Improve reading, writing\nand grammar skills.",
-      "long":
-          "Hindi classes focus on reading fluently, writing proper answers and understanding grammar. We also work on comprehension and creative writing to score better in exams."
-    },
-  ];
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  List<CourseModel> courses = [];
+  int hoveredIndex = -1;
+
+  Future<void> loadCourses() async {
+    final jsonData = await DefaultAssetBundle.of(context)
+        .loadString('assets/json/courses.json');
+    final List decoded = json.decode(jsonData);
+    courses = decoded.map((e) => CourseModel.fromJson(e)).toList();
+    setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    loadCourses();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset(
-              'assets/img/logo.png',
-              height: 40,
-              errorBuilder: (_, __, ___) =>
-                  const Icon(Icons.school, color: Colors.white),
-            ),
+            Image.asset("assets/img/logo.png", height: 36),
             const SizedBox(width: 10),
-            const Text('Tuition Services'),
+            const Text("Tuition Services"),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: toggleTheme,
-            icon: Icon(
-              isDark ? Icons.light_mode : Icons.dark_mode,
-              color: Colors.white,
-            ),
-          ),
-          if (MediaQuery.of(context).size.width > 700)
-            TextButton(
-              onPressed: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => const AboutPage())),
-              child: const Text('About', style: TextStyle(color: Colors.white)),
-            ),
-          if (MediaQuery.of(context).size.width > 700)
-            TextButton(
-              onPressed: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => const ContactPage())),
-              child: const Text('Contact', style: TextStyle(color: Colors.white)),
-            ),
-        ],
+        actions: _buildActions(context),
       ),
 
-      drawer: MediaQuery.of(context).size.width <= 700
-          ? Drawer(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  DrawerHeader(
-                    decoration: BoxDecoration(color: Theme.of(context).primaryColor),
-                    child: const Center(
-                      child: Text("MENU",
-                          style: TextStyle(color: Colors.white, fontSize: 22)),
-                    ),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.info),
-                    title: const Text("About"),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const AboutPage()));
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.contact_mail),
-                    title: const Text("Contact"),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const ContactPage()));
-                    },
-                  ),
-                ],
-              ),
-            )
-          : null,
+      drawer: _buildDrawer(context),
 
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: LayoutBuilder(
-                    builder: (context, c) {
-                      int count = 3;
-                      if (c.maxWidth < 1200) count = 2;
-                      if (c.maxWidth < 700) count = 1;
+      body: courses.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : _buildScrollablePage(context),
+    );
+  }
 
-                      return GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: subjects.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: count,
-                          childAspectRatio: c.maxWidth < 700 ? 1 : 0.92,
-                          crossAxisSpacing: 20,
-                          mainAxisSpacing: 20,
-                        ),
-                        itemBuilder: (_, i) => _hoverCard(context, subjects[i]),
-                      );
-                    },
-                  ),
+  /// ------------------ SCROLLABLE CONTENT + FOOTER -------------------------
+  Widget _buildScrollablePage(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1,
+                  crossAxisSpacing: 15,
+                  mainAxisSpacing: 15,
                 ),
+                itemCount: courses.length,
+                itemBuilder: (context, index) {
+                  final c = courses[index];
+                  return MouseRegion(
+                    onEnter: (_) => setState(() => hoveredIndex = index),
+                    onExit: (_) => setState(() => hoveredIndex = -1),
+                    child: SubjectCard(
+                      course: c,
+                      imagePath: getImg(c.id),
+                      isHovered: hoveredIndex == index,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EnrollPage(
+                            subject: c.title,
+                            description: c.longDescription,
+                            imagePath: getImg(c.id),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 50),
-            _buildFooter(context),
-          ],
-        ),
+          ),
+
+          _buildFooter(context),
+        ],
       ),
     );
   }
 
-  Widget _hoverCard(BuildContext context, Map<String, String> s) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return StatefulBuilder(builder: (_, set) {
-      bool hover = false;
-
-      return MouseRegion(
-        onEnter: (_) => set(() => hover = true),
-        onExit: (_) => set(() => hover = false),
-        cursor: SystemMouseCursors.click,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 90),
-          scale: (MediaQuery.of(context).size.width > 700 && hover) ? 1.12 : 1.0,
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => EnrollPage(
-                            subject: s['name']!,
-                            description: s['long']!,
-                            imagePath: s['img']!,
-                          )));
-            },
-            child: Card(
-              elevation: 3,
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 70, child: Image.asset(s['img']!, fit: BoxFit.contain)),
-                    const SizedBox(height: 8),
-                    Text(s['name']!,
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF0D47A1))),
-                    const SizedBox(height: 5),
-                    Text(s['short']!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87)),
-                    const SizedBox(height: 8),
-
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => EnrollPage(
-                                      subject: s['name']!,
-                                      description: s['long']!,
-                                      imagePath: s['img']!,
-                                    )));
-                      },
-                      child: const Text("Enroll", style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    });
+  /// ------------------ NAV BAR ACTIONS -------------------------
+  List<Widget> _buildActions(BuildContext context) {
+    return [
+      IconButton(
+        onPressed: widget.toggleTheme,
+        icon: const Icon(Icons.dark_mode, color: Colors.white),
+      ),
+      _navButton("About", () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage()));
+      }),
+      _navButton("Contact", () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ContactPage()));
+      }),
+    ];
   }
 
+  Widget _navButton(String text, VoidCallback fn) {
+    return TextButton(
+      onPressed: fn,
+      child: Text(text, style: const TextStyle(color: Colors.white)),
+    );
+  }
+
+  /// ------------------ HAMBURGER MENU -------------------------
+  Drawer _buildDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: Color(0xFF1565C0)),
+            child: Center(
+              child: Text("Menu", style: TextStyle(color: Colors.white, fontSize: 20)),
+            ),
+          ),
+          ListTile(
+            title: const Text("Toggle Dark Mode"),
+            leading: const Icon(Icons.dark_mode),
+            onTap: widget.toggleTheme,
+          ),
+          ListTile(
+            title: const Text("About"),
+            leading: const Icon(Icons.info),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutPage()),
+            ),
+          ),
+          ListTile(
+            title: const Text("Contact"),
+            leading: const Icon(Icons.call),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ContactPage()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ------------------ IMAGE MAPPER -------------------------
+  String getImg(String id) {
+    switch (id) {
+      case "1":
+        return "assets/img/math.png";
+      case "2":
+        return "assets/img/physics.png";
+      case "3":
+        return "assets/img/history.png";
+      case "4":
+        return "assets/img/chemistry.png";
+      default:
+        return "assets/img/logo.png";
+    }
+  }
+
+  /// ------------------ FOOTER (FULL WIDTH) -------------------------
   Widget _buildFooter(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final width = MediaQuery.of(context).size.width;
+    final bool isMobile = width < 850;
 
     return Container(
       width: double.infinity,
-      color: isDark ? const Color(0xFF0A2342) : const Color(0xFF0D47A1),
-      padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 40),
+      color: const Color(0xFF1565C0),
+      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 40),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MediaQuery.of(context).size.width < 700
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              _FooterLogo(),
-              _FooterCol(title: "Courses", list: [
-                "English", "Maths", "Science", "Computer", "Social Studies", "Hindi"
-              ]),
-              _FooterCol(title: "Useful Links", list: [
-                "About", "Contact", "Enroll"
-              ]),
-              _FooterContact(),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Divider(color: isDark ? Colors.white24 : Colors.white30),
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    _FooterLogoSection(),
+                    SizedBox(height: 20),
+                    _FooterCoursesSection(),
+                    SizedBox(height: 20),
+                    _FooterLinksSection(),
+                    SizedBox(height: 20),
+                    _FooterContactSection(),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    _FooterLogoSection(),
+                    _FooterCoursesSection(),
+                    _FooterLinksSection(),
+                    _FooterContactSection(),
+                  ],
+                ),
+          const SizedBox(height: 25),
+          const Divider(color: Colors.white24),
           const SizedBox(height: 10),
-          Text("© 2025 Tuition Services. All rights reserved.",
-              style: TextStyle(color: isDark ? Colors.white70 : Colors.white70, fontSize: 12)),
-          const SizedBox(height: 5),
-          Text("Designed and Developed by You",
-              style: TextStyle(
-                  color: Colors.white,
-                  decoration: TextDecoration.underline,
-                  fontSize: 12)),
+          const Text(
+            "© 2025 Tuition Services. All rights reserved.",
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
         ],
       ),
     );
   }
 }
 
-// ---------------- FOOTER WIDGETS ----------------
-
-class _FooterLogo extends StatelessWidget {
-  const _FooterLogo();
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Image.asset("assets/img/logo.png", height: 55,
-            errorBuilder: (_, __, ___) =>
-                const Icon(Icons.school, color: Colors.white, size: 50)),
-        const SizedBox(height: 10),
-        const Text("Tuition Services",
-            style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-      ],
-    );
-  }
-}
-
-class _FooterCol extends StatelessWidget {
-  final String title;
-  final List<String> list;
-  const _FooterCol({required this.title, required this.list});
+/// ------------------ FOOTER WIDGETS -------------------------
+class _FooterLogoSection extends StatelessWidget {
+  const _FooterLogoSection();
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style:
-                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 10),
-        for (var e in list)
-          Text(e, style: const TextStyle(color: Colors.white70)),
+        Image.asset("assets/img/logo.png", height: 55, color: Colors.white),
+        const SizedBox(height: 8),
+        const Text(
+          "Tuition Services",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
       ],
     );
   }
 }
 
-class _FooterContact extends StatelessWidget {
-  const _FooterContact();
+class _FooterCoursesSection extends StatelessWidget {
+  const _FooterCoursesSection();
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: const [
-        Text("Contact",
-            style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        SizedBox(height: 10),
-        Text("tuition@example.com\n+91 98765 43210",
-            style: TextStyle(color: Colors.white70)),
-        SizedBox(height: 10),
+        _FooterTitle("Courses"),
+        SizedBox(height: 8),
+        _FooterItem("Mathematics"),
+        _FooterItem("Physics"),
+        _FooterItem("History"),
+        _FooterItem("Chemistry"),
+      ],
+    );
+  }
+}
+
+class _FooterLinksSection extends StatelessWidget {
+  const _FooterLinksSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        _FooterTitle("Useful Links"),
+        SizedBox(height: 8),
+        _FooterItem("About"),
+        _FooterItem("Contact"),
+        _FooterItem("Enroll"),
+      ],
+    );
+  }
+}
+
+class _FooterContactSection extends StatelessWidget {
+  const _FooterContactSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FooterTitle("Contact"),
+        const SizedBox(height: 8),
+        const _FooterItem("tuition@example.com"),
+        const _FooterItem("+91 98765 43210"),
+        const _FooterItem("Your City, India"),
+        const SizedBox(height: 10),
         Row(
-          children: [
+          children: const [
             Icon(Icons.facebook, color: Colors.white, size: 22),
-            SizedBox(width: 10),
-            Icon(Icons.chat, color: Colors.white, size: 22),
-            SizedBox(width: 10),
+            SizedBox(width: 12),
+            Icon(Icons.message, color: Colors.white, size: 22),
+            SizedBox(width: 12),
             Icon(Icons.camera_alt, color: Colors.white, size: 22),
           ],
-        )
+        ),
       ],
+    );
+  }
+}
+
+/// FOOTER TEXT WIDGETS
+class _FooterTitle extends StatelessWidget {
+  final String text;
+  const _FooterTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+    );
+  }
+}
+
+class _FooterItem extends StatelessWidget {
+  final String text;
+  const _FooterItem(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(color: Colors.white70, fontSize: 14),
     );
   }
 }
